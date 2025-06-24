@@ -89,11 +89,3 @@ A: Go to <https://github.com/settings/tokens> and generate a new token with the 
 
 **Q: How do I clear the cache?**  
 A: Delete the `cache/` directory in the project root.
-
-## Contribution
-
-Contributions are welcome! Please open issues or pull requests for bug fixes, new features, or improvements.
-
-## License
-
-This project is licensed under the MIT License.
