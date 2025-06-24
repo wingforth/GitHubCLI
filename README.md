@@ -7,7 +7,6 @@ A simple and extensible command-line interface (CLI) for interacting with the Gi
 - List and view GitHub events, users, repositories, issues, pull requests, commits, and branches
 - Check API rate limits
 - Supports authentication via personal access token
-- Extensible command structure for easy addition of new features
 
 ## Installation
 
@@ -18,17 +17,10 @@ A simple and extensible command-line interface (CLI) for interacting with the Gi
    cd GitHubCLI
    ```
 
-2. (Optional) Create a virtual environment:
+2. Create a virtual environment and install dependencies (uv required):
 
    ```sh
-   python -m venv venv
-   .\venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-
-   ```sh
-   pip install -r requirements.txt
+   uv sync
    ```
 
 ## Authentication
@@ -77,25 +69,23 @@ For more options, use `-h` or `--help` after any command.
 - `commands.py` - Command and argument definitions
 - `github/` - API wrappers and output formatting
 - `cache/` - Cached API responses (if enabled)
+- `.github-token` - Github access token (if provided)
 
 ## Dependencies
 
 - Python 3.10+
 - requests
 
-Install all dependencies with:
+Install all dependencies with (uv required):
 
 ```sh
-pip install -r requirements.txt
+uv sync
 ```
 
 ## FAQ
 
 **Q: How do I get a GitHub personal access token?**  
-A: Go to https://github.com/settings/tokens and generate a new token with the required scopes.
-
-**Q: How do I add new commands?**  
-A: Edit `commands.py` and follow the existing structure. See the docstrings for guidance.
+A: Go to <https://github.com/settings/tokens> and generate a new token with the required scopes.
 
 **Q: How do I clear the cache?**  
 A: Delete the `cache/` directory in the project root.
