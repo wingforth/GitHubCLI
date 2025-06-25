@@ -1,4 +1,4 @@
-# GitHubCLI
+# github-cli
 
 A simple and extensible command-line interface (CLI) for interacting with the GitHub REST API. Supports viewing user, repository, issue, pull request, commit, branch, and rate limit information directly from your terminal.
 
@@ -13,8 +13,8 @@ A simple and extensible command-line interface (CLI) for interacting with the Gi
 1. Clone this repository:
 
    ```sh
-   git clone https://github.com/wingforth/GitHubCLI
-   cd GitHubCLI
+   git clone https://github.com/wingforth/github-cli
+   cd github-cli
    ```
 
 2. Create a virtual environment and install dependencies (uv required):
