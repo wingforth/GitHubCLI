@@ -8,7 +8,7 @@ from json import load, dump
 from typing import Any, Generator
 from pathlib import Path
 from requests import RequestException, Session, Response, HTTPError
-from .github_event import GithubEvent
+from github_cli.github_event import GithubEvent
 
 # Cache Keys Class
 CacheKeys = namedtuple("CacheKeys", ("etag", "last_modified", "next_page"), defaults=(None, None, None))
@@ -52,7 +52,7 @@ class GithubCache:
             self.cache_dir.mkdir(parents=True)
         elif not self.cache_dir.is_dir():
             raise NotADirectoryError("Path `cache_dir` is not a directory.")
-        self.__session: str = self.shorten_url(url)
+        self.__session: str = self._shorten_url(url)
         self.__history: Path = self.cache_dir / ".session"
         if not self.__history.exists():
             with open(self.__history, mode="w", encoding="utf-8") as fd:
@@ -65,7 +65,7 @@ class GithubCache:
         self.__updated: bool = True
 
     @staticmethod
-    def shorten_url(url: str) -> str:
+    def _shorten_url(url: str) -> str:
         """Shorten url by removing common prefix.
 
         Args:
@@ -76,7 +76,7 @@ class GithubCache:
         """
         return url.removeprefix(GithubCache.url_common_prefix)
 
-    def __path(self, url: str) -> Path:
+    def _path(self, url: str) -> Path:
         """Get the cached response json file of the request to url.
 
         Args:
@@ -85,7 +85,7 @@ class GithubCache:
         Returns:
             Path: The file storing the response.
         """
-        return self.cache_dir / (quote(self.shorten_url(url), safe="") + ".json")
+        return self.cache_dir / (quote(self._shorten_url(url), safe="") + ".json")
 
     def load_cache(self, url: str) -> Any:
         """Load the cached data of the request to url.
@@ -96,7 +96,7 @@ class GithubCache:
         Returns:
             Any: The cached response json data.
         """
-        with open(self.__path(url), mode="r", encoding="utf-8") as fd:
+        with open(self._path(url), mode="r", encoding="utf-8") as fd:
             return load(fd)
 
     def store_response(
@@ -116,16 +116,16 @@ class GithubCache:
             last_modified (str | None, optional): The response header `last-modified`. Defaults to None.
             next_page (str | None, optional): The url of the next page if the response is paginated. Defaults to None.
         """
-        key = self.shorten_url(url)
+        key = self._shorten_url(url)
         # if next page url changed, delete the cache of next page url.
         stale_next_page = self.__cache.get(key, CacheKeys()).next_page
         if stale_next_page and stale_next_page != next_page:
             self.__cache.pop(stale_next_page, None)
-            self.__path(stale_next_page).unlink(missing_ok=True)
+            self._path(stale_next_page).unlink(missing_ok=True)
         # update cache keys.
         self.__cache[key] = CacheKeys(etag, last_modified, next_page)
         # store response json data.
-        with open(self.__path(url), mode="w", encoding="utf-8") as fd:
+        with open(self._path(url), mode="w", encoding="utf-8") as fd:
             dump(data, fd, indent=4)
         # Marking cache needs to be updated by setting self.updated to False.
         self.__updated = False
@@ -139,7 +139,7 @@ class GithubCache:
         Returns:
             CacheKeys: Cache keys, a namedtuple contains etag, last-modified, next page url.
         """
-        return self.__cache.get(self.shorten_url(url), CacheKeys())
+        return self.__cache.get(self._shorten_url(url), CacheKeys())
 
     def update_cache(self) -> None:
         """Update cache keys in .session file."""
@@ -244,10 +244,15 @@ class RestApi:
             return
 
         url_path = RestApi.endpoints[endpoint].format(**path_params) if path_params else RestApi.endpoints[endpoint]
+        queries = []
+        if query_params:
+            for key, val in query_params.items():
+                if isinstance(val, list):
+                    queries.extend(f"{key}={v}" for v in val)
+                else:
+                    queries.append(f"{key}={val}")
         self.url: str = (
-            f"{RestApi.base_url}{url_path}?{'&'.join(f'{key}={val}' for key, val in query_params.items())}"
-            if query_params
-            else f"{RestApi.base_url}{url_path}"
+            f"{RestApi.base_url}{url_path}?{'&'.join(queries)}" if queries else f"{RestApi.base_url}{url_path}"
         )
 
         self.headers: dict = headers or {}
@@ -272,8 +277,8 @@ class RestApi:
 
         with Session() as session:
             session.headers.update(self.headers)
-            self.__conditional_request(session, self.__cache.get_cache_keys(self.url))
-            resp = self.__make_request(session, self.url)
+            self._conditional_request(session, self.__cache.get_cache_keys(self.url))
+            resp = self._make_request(session, self.url)
             if resp is None or resp.status_code not in (200, 304):
                 return None
             if resp.status_code == 200:
@@ -298,13 +303,13 @@ class RestApi:
             session.headers.update(self.headers)
             while url:
                 cache_keys = self.__cache.get_cache_keys(url)
-                self.__conditional_request(session, cache_keys)
-                resp = self.__make_request(session, url)
+                self._conditional_request(session, cache_keys)
+                resp = self._make_request(session, url)
                 if resp is None or resp.status_code not in (200, 304):
                     break
                 if resp.status_code == 200:
                     data = resp.json()
-                    next_page_url = self.__get_next_page_url(resp)
+                    next_page_url = self._get_next_page_url(resp)
                     self.__cache.store_response(
                         url, data, resp.headers.get("etag"), resp.headers.get("last-modified"), next_page_url
                     )
@@ -320,7 +325,7 @@ class RestApi:
                 url = next_page_url
         self.__cache.update_cache()
 
-    def __make_request(self, session: Session, url: str) -> Response | None:
+    def _make_request(self, session: Session, url: str) -> Response | None:
         """Make a request to url.
 
         Args:
@@ -337,16 +342,16 @@ class RestApi:
         except HTTPError as e:
             print("Http Error:", e)
             if resp is not None:
-                self.__check_rate_limit(resp)
+                self._check_rate_limit(resp)
         except RequestException as e:
             print("Request Error:", e)
         else:
             if resp is not None and resp.is_redirect:
-                return self.__make_request(session, resp.headers["location"])
+                return self._make_request(session, resp.headers["location"])
         return resp
 
     @staticmethod
-    def __conditional_request(session: Session, cache_keys: CacheKeys) -> None:
+    def _conditional_request(session: Session, cache_keys: CacheKeys) -> None:
         """Set session's headers `Etag` and `Last-Modified` for conditional request.
 
         Args:
@@ -363,7 +368,7 @@ class RestApi:
             session.headers.pop("if-modified-since", None)
 
     @staticmethod
-    def __get_next_page_url(resp: Response) -> str | None:
+    def _get_next_page_url(resp: Response) -> str | None:
         """Get the next page url of the paginated response from the header `Link` of the response.
 
         Args:
@@ -382,7 +387,7 @@ class RestApi:
         return None
 
     @staticmethod
-    def __check_rate_limit(resp: Response):
+    def _check_rate_limit(resp: Response):
         """Check whether rate limit is exceeded.
 
         Args:
@@ -614,7 +619,7 @@ class Branch(RestApi):
         """
         if title:
             print(title)
-        fmt = "{:30}    {}".format
+        fmt = "{:50}    {}".format
         print(fmt("branch", "SHA"))
         print(fmt("------", "---"))
         for page in self.iter_paginated_data():

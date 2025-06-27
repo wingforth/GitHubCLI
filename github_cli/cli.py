@@ -4,25 +4,12 @@ A simple command line interface (CLI) to interact with GitHub REST API.
 """
 
 from argparse import ArgumentParser, Namespace, SUPPRESS
-from pathlib import Path
-from github import Event, RateLimit, Repository, User, Issue, PullRequest, Commit, Branch
-from commands import commands
+from github_cli.rest_api import Event, RateLimit, Repository, User, Issue, PullRequest, Commit, Branch
+from github_cli.commands import commands
+from github_cli.config import CACHE_DIR, GITHUB_TOKEN
 
 
-def get_github_token() -> str | None:
-    """Read GitHub access token from .github-token file in the parent directory.
-
-    Returns:
-        str | None: GitHub access token, or None if not found.
-    """
-    token_file = Path().parent / ".github-token"
-    if not token_file.exists():
-        return None
-    with open(token_file) as fd:
-        return fd.read().strip()
-
-
-class GitHubCLI:
+class GithubCli:
     """A command line interface to interact with GitHub REST API.
 
     Handles argument parsing and command dispatching.
@@ -52,7 +39,7 @@ class GitHubCLI:
             commands (list[dict]): List of command definitions.
             parents (list[str]): List of parent command names.
         """
-        subparsers = parser.add_subparsers()
+        subparsers = parser.add_subparsers(required=True)
         for command in commands:
             name = command.pop("cmd")
             sub_parser = subparsers.add_parser(name, argument_default=SUPPRESS, help=command.pop("help"))
@@ -110,8 +97,8 @@ class GitHubCLI:
             endpoint,
             path_params=params,
             limit=args.limit,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).list_events(title)
 
     def handle_user(self, args: Namespace):
@@ -133,8 +120,8 @@ class GitHubCLI:
         User(
             endpoint,
             path_params=params,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_user()
 
     def handle_repo_view(self, args: Namespace):
@@ -148,8 +135,8 @@ class GitHubCLI:
         Repository(
             endpoint,
             path_params={"owner": owner, "repo": repo},
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_repo()
 
     def handle_repo_list(self, args: Namespace):
@@ -185,8 +172,8 @@ class GitHubCLI:
             endpoint,
             path_params=params,
             limit=args.limit,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).list_repos(title)
 
     def handle_issue_view(self, args: Namespace):
@@ -200,8 +187,8 @@ class GitHubCLI:
         Issue(
             endpoint,
             path_params={"owner": owner, "repo": repo, "issue_number": args.number},
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_issue()
 
     def handle_issue_list(self, args: Namespace):
@@ -232,8 +219,8 @@ class GitHubCLI:
             endpoint,
             path_params=params,
             limit=args.limit,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).list_issues(title)
 
     def handle_pr_view(self, args: Namespace):
@@ -247,8 +234,8 @@ class GitHubCLI:
         PullRequest(
             endpoint,
             path_params={"owner": owner, "repo": repo, "pull_number": args.number},
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_pull_request()
 
     def handle_pr_list(self, args: Namespace):
@@ -272,8 +259,8 @@ class GitHubCLI:
             endpoint,
             path_params=params,
             limit=args.limit,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).list_pull_requests(title)
 
     def handle_commit_view(self, args: Namespace):
@@ -288,8 +275,8 @@ class GitHubCLI:
         Commit(
             endpoint,
             path_params=params,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_commit()
 
     def handle_commit_list(self, args: Namespace):
@@ -318,8 +305,8 @@ class GitHubCLI:
             path_params=path_params,
             query_params=query_params,
             limit=args.limit,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).list_commits(title)
 
     def handle_branch_view(self, args: Namespace):
@@ -333,8 +320,8 @@ class GitHubCLI:
         Branch(
             endpoint,
             path_params={"owner": owner, "repo": repo, "branch": args.branch},
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_branch()
 
     def handle_branch_list(self, args: Namespace):
@@ -357,8 +344,8 @@ class GitHubCLI:
             endpoint,
             path_params=params,
             limit=args.limit,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).list_branches(title)
 
     def handle_ratelimit(self, args: Namespace):
@@ -370,10 +357,6 @@ class GitHubCLI:
         endpoint = "get_rate_limit_status_for_the_authenticated_user"
         RateLimit(
             endpoint,
-            auth=get_github_token(),
-            cache_dir=Path(__file__).resolve().parent / "cache",
+            auth=GITHUB_TOKEN,
+            cache_dir=CACHE_DIR,
         ).view_rate_limit_status()
-
-
-if __name__ == "__main__":
-    GitHubCLI()

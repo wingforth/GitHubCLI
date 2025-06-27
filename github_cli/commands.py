@@ -102,7 +102,7 @@ GitHub CLI commands.
 from argparse import ArgumentTypeError
 
 
-def positive_integer(s: str) -> int:
+def _positive_integer(s: str) -> int:
     """
     Convert a string to a positive integer.
 
@@ -172,7 +172,7 @@ commands = [
                     },
                     {
                         "name_or_flags": "--limit",
-                        "type": positive_integer,
+                        "type": _positive_integer,
                         "default": 30,
                         "help": "Maximum number of repositories to fetch. Default 30.",
                     },
